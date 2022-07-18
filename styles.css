@@ -1,4 +1,8 @@
-/* Sets all the text color to red! */
-body {
-    color: red;
+.anki-decks-container {
+	max-height: 600px;
+	overflow: auto;
+}
+
+.anki-decks-item {
+	cursor: pointer;
 }
