@@ -1,27 +1,23 @@
-# Obsidian Sample Plugin
+# Anki Markdown
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+This is an Obsidian plugin, introducing support to synchronize a file in Obsidian with Anki.
 
-This project uses Typescript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in Typescript Definition format, which contains TSDoc comments describing what it does.
+It follows Anki Markdown syntax.
 
-**Note:** The Obsidian API is still in early alpha and is subject to change at any time!
+## Headers
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Changes the default font color to red using `styles.css`.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+In top of a file, one can include a header with additional customizations. Currently, the following customizations are supported:
 
-## First time developing plugins?
+| field                | required                                                                                                                                                                                    |
+|----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `deckName`           | Specifies the name for Anki deck. If not specified, the file name will be used (with :: instad of __ and without extension).                                                                |
+| `articleFileName`    | If specified, then 'anki-markdown-generate' command will generate an article in a file with the specified name. An article file is a markdown file stripped off all Anki Markdown elements. |
+| `packageDestination` | If specified, then 'anki-markdown-generate' command will generate an apkg file in the specified location.                                                                                   |
 
-Quick starting guide for new plugin devs:
+All fields are optional.
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
+## Run
+
 - Install NodeJS, then run `npm i` in the command line under your repo folder.
 - Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
 - Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
@@ -46,28 +42,3 @@ Quick starting guide for new plugin devs:
 - Publish an initial version.
 - Make sure you have a `README.md` file in the root of your repo.
 - Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
-
-## How to use
-
-- Clone this repo.
-- `npm i` or `yarn` to install dependencies
-- `npm run dev` to start compilation in watch mode.
-
-## Manually installing the plugin
-
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
-
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
-
-
-## API Documentation
-
-See https://github.com/obsidianmd/obsidian-api
