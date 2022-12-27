@@ -10,7 +10,7 @@ In top of a file, one can include a header with additional customizations. Curre
 
 | field                | required | explanation                                                                                                                                                                                 |
 |----------------------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `deckName`           | required | Specifies the name for Anki deck. If not specified, the file name will be used (with :: instad of __ and without extension).                                                                |
+| `deckName`           | required | Specifies the name for Anki deck.                                                                                                                                                           |
 | `articleFileName`    | optional | If specified, then 'anki-markdown-generate' command will generate an article in a file with the specified name. An article file is a markdown file stripped off all Anki Markdown elements. |
 | `packageDestination` | optional | If specified, then 'anki-markdown-generate' command will generate an apkg file in the specified location.                                                                                   |
 
