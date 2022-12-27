@@ -1,18 +1,7 @@
 import {addIcon, App, Command, Modal, Notice, Plugin} from 'obsidian';
 import {AnkiConnector} from 'anki-markdown';
 
-// Remember to rename these classes and interfaces!
-
-interface MyPluginSettings {
-	standardPrefix: string;
-}
-
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	standardPrefix: ''
-}
-
 export default class AnkiMarkdownPlugin extends Plugin {
-	settings: MyPluginSettings;
 	connector: AnkiConnector = new AnkiConnector();
 	actionsShown: boolean = false;
 	icons: HTMLElement[] = [];
@@ -22,9 +11,6 @@ export default class AnkiMarkdownPlugin extends Plugin {
 		this.addActionsIfAnkiConnected()
 		this.registerInterval(window.setInterval(() => this.addActionsIfAnkiConnected(), 10 * 1000));
 		this.addGenerateCommand();
-
-		// await this.loadSettings();
-		// this.addSettingTab(new SampleSettingTab(this.app, this));
 	}
 
 	onunload() {
@@ -69,8 +55,7 @@ export default class AnkiMarkdownPlugin extends Plugin {
 		if (!activeFile) return
 		try {
 			const content = await this.app.vault.read(activeFile);
-			const deckName = fileNameToDeckName(activeFile.name);
-			const result = await this.connector.pullDeckToExisting(deckName, content);
+			const result = await this.connector.pullFile(content);
 			await this.app.vault.modify(activeFile, result.markdown)
 			new Notice(`Success`);
 		} catch (e) {
@@ -84,10 +69,7 @@ export default class AnkiMarkdownPlugin extends Plugin {
 		if (!activeFile) return
 		try {
 			const content = await this.app.vault.read(activeFile);
-			const deckName = fileNameToDeckName(activeFile.name);
-			console.log(content)
-			console.log(deckName)
-			const result = await this.connector.pushDeck(deckName, content);
+			const result = await this.connector.pushFile(content);
 			await this.app.vault.modify(activeFile, result.markdown)
 			new Notice(`Success\nAdded: ${result.ankiModificationsCounts?.addedCount}\nRemoved: ${result.ankiModificationsCounts?.removedCount}\nUpdated: ${result.ankiModificationsCounts?.updatedCount}\nUnchanged: ${result.ankiModificationsCounts?.unchangedCount}`);
 		} catch (e) {
@@ -109,7 +91,7 @@ export default class AnkiMarkdownPlugin extends Plugin {
 							// If checking is false, then we want to actually perform the operation.
 							if (!checking) {
 								this.pushToAnki()
-								this.connector.exportAnkiPackage(activeFile.name, content)
+								this.connector.exportAnkiPackage(content)
 								const article = this.connector.generateArticle(content)
 								if (article) {
 									const parentPath = activeFile.parent?.path
@@ -125,43 +107,7 @@ export default class AnkiMarkdownPlugin extends Plugin {
 			}
 		}));
 	}
-
-	// async loadSettings() {
-	// 	this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	// }
-
-	// async saveSettings() {
-	// 	await this.saveData(this.settings);
-	// }
 }
-
-// class SampleSettingTab extends PluginSettingTab {
-// 	plugin: MyPlugin;
-//
-// 	constructor(app: App, plugin: MyPlugin) {
-// 		super(app, plugin);
-// 		this.plugin = plugin;
-// 	}
-//
-// 	display(): void {
-// 		const {containerEl} = this;
-//
-// 		containerEl.empty();
-//
-// 		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
-//
-// 		new Setting(containerEl)
-// 			.setName('Standard Prefix')
-// 			.setDesc('The prefix that should be used for all decks')
-// 			.addText(text => text
-// 				.setPlaceholder('')
-// 				.setValue(this.plugin.settings.standardPrefix)
-// 				.onChange(async (value) => {
-// 					this.plugin.settings.standardPrefix = value;
-// 					await this.plugin.saveSettings();
-// 				}));
-// 	}
-// }
 
 class DecksModal extends Modal {
 	constructor(app: App, public names: Array<string>, public connector: AnkiConnector) {
@@ -177,7 +123,7 @@ class DecksModal extends Modal {
 				.createEl("a", {text: deckName, cls: 'anki-decks-item'})
 				.addEventListener('click', async (e) => {
 					try {
-						const data = await this.connector.pullDeck(deckName)
+						const data = await this.connector.createFile(deckName)
 						const fileName = deckNameToFileName(deckName)
 						const activeFilePath = this.app.workspace.getActiveFile()?.parent?.path
 						const path = activeFilePath ? activeFilePath + "/" : ""
@@ -198,9 +144,4 @@ class DecksModal extends Modal {
 
 function deckNameToFileName(deckName: string): string {
 	return deckName.replace(/::/g, "__") + ".md"
-}
-
-function fileNameToDeckName(deckName: string): string {
-	return deckName.replace(/__/g, "::")
-		.replace(".md", "")
 }

@@ -1,7 +1,7 @@
 {
 	"id": "anki-markdown-obsidian",
 	"name": "AnkiMarkdown",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"minAppVersion": "0.12.0",
 	"description": "A plugin to synchronize notes specified in Markdown with Anki.",
 	"author": "Marcin Moskała",
