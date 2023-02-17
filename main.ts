@@ -1,4 +1,4 @@
-import {addIcon, App, Command, Modal, Notice, Plugin} from 'obsidian';
+import {addIcon, App, Command, Modal, Notice, Plugin, TFile, TFolder} from 'obsidian';
 import {AnkiConnector} from 'anki-markdown';
 
 export default class AnkiMarkdownPlugin extends Plugin {
@@ -58,6 +58,8 @@ export default class AnkiMarkdownPlugin extends Plugin {
 			const result = await this.connector.pullFile(content);
 			await this.app.vault.modify(activeFile, result.markdown)
 			new Notice(`Success`);
+
+			// TODO - pull files from Anki
 		} catch (e) {
 			console.log(e)
 			new Notice(`Error while pushing cards ${e?.message}`);
@@ -65,16 +67,33 @@ export default class AnkiMarkdownPlugin extends Plugin {
 	}
 
 	private async pushToAnki() {
-		const activeFile = this.app.workspace.getActiveFile()
+		const activeFile: TFile | null = this.app.workspace.getActiveFile()
 		if (!activeFile) return
 		try {
 			const content = await this.app.vault.read(activeFile);
 			const result = await this.connector.pushFile(content);
 			await this.app.vault.modify(activeFile, result.markdown)
+
 			new Notice(`Success\nAdded: ${result.ankiModificationsCounts?.addedCount}\nRemoved: ${result.ankiModificationsCounts?.removedCount}\nUpdated: ${result.ankiModificationsCounts?.updatedCount}\nUnchanged: ${result.ankiModificationsCounts?.unchangedCount}`);
+			this.storeMediaFiles(activeFile, result.mediaToUpdate)
 		} catch (e) {
 			console.log(e)
 			new Notice(`Error while pushing cards ${e?.message}`);
+		}
+	}
+
+	private async storeMediaFiles(activeFile: TFile, mediaToUpdate: Array<string>) {
+		try {
+			const mediaFolder = activeFile.parent.children.find(it => it.name == "images") as TFolder
+			for (const media of mediaToUpdate) {
+				const mediaFile = mediaFolder.children.find(it => it.name == media) as TFile
+				const content: ArrayBuffer = await this.app.vault.readBinary(mediaFile)
+				const contentBase64: string = arrayBufferToBase64(content);
+				this.connector.storeMediaFile(mediaFile.name, contentBase64)
+			}
+		} catch (e) {
+			console.log(e)
+			new Notice(`Error while pushing images`);
 		}
 	}
 
@@ -129,6 +148,8 @@ class DecksModal extends Modal {
 						const path = activeFilePath ? activeFilePath + "/" : ""
 						const file = await this.app.vault.create(path + "/" + fileName, data.markdown)
 						this.app.workspace.getLeaf().openFile(file);
+
+						// TODO - pull files from Anki
 					} catch (e) {
 						new Notice(`Error ${e.message}`);
 					}
@@ -144,4 +165,14 @@ class DecksModal extends Modal {
 
 function deckNameToFileName(deckName: string): string {
 	return deckName.replace(/::/g, "__") + ".md"
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+	const bytes = new Uint8Array(buffer);
+	const len = bytes.byteLength;
+	let binary = '';
+	for (var i = 0; i < len; i++) {
+		binary += String.fromCharCode(bytes[i]);
+	}
+	return window.btoa(binary);
 }

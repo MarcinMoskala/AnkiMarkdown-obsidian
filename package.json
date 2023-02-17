@@ -1,6 +1,6 @@
 {
 	"name": "anki-markdown-obsidian",
-	"version": "0.0.1",
+	"version": "0.0.3",
 	"description": "A plugin to synchronize notes specified in Markdown with Anki.",
 	"main": "main.js",
 	"scripts": {
@@ -22,6 +22,6 @@
 		"typescript": "4.7.4"
 	},
 	"dependencies": {
-		"anki-markdown": "0.0.19"
+		"anki-markdown": "0.0.26"
 	}
 }
