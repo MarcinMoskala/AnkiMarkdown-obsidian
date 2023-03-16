@@ -45,9 +45,23 @@ export default class AnkiMarkdownPlugin extends Plugin {
 		this.icons.push(this.addRibbonIcon('plus', 'Add deck from Anki', async (evt: MouseEvent) => {
 			let names = await this.connector.getDeckNames()
 			names = names.filter(checked => !names.find(n => n != checked && n.startsWith(checked)))
-			new DecksModal(this.app, names, this.connector).open()
+			new DecksModal(names, this).open()
 			new Notice(`Success`);
 		}));
+	}
+
+	async createNoteFromAnkiDeck(deckName: string) {
+		try {
+			const data = await this.connector.createFile(deckName)
+			const fileName = absoluteDeckNameToSimpleDeckName(deckName)
+			const activeFilePath = this.app.workspace.getActiveFile()?.parent?.path
+			const path = activeFilePath ? activeFilePath + "/" : ""
+			const file = await this.app.vault.create(path + "/" + fileName, data.markdown)
+			this.fetchMediaFilesFromAnki(file, data.mediaToUpdate)
+			await this.app.workspace.getLeaf().openFile(file);
+		} catch (e) {
+			new Notice(`Error ${e.message}`);
+		}
 	}
 
 	private async pullFromAnki() {
@@ -58,11 +72,27 @@ export default class AnkiMarkdownPlugin extends Plugin {
 			const result = await this.connector.pullFile(content);
 			await this.app.vault.modify(activeFile, result.markdown)
 			new Notice(`Success`);
-
-			// TODO - pull files from Anki
+			this.fetchMediaFilesFromAnki(activeFile, result.mediaToUpdate)
 		} catch (e) {
 			console.log(e)
 			new Notice(`Error while pushing cards ${e?.message}`);
+		}
+	}
+
+	private async fetchMediaFilesFromAnki(activeFile: TFile, mediaToUpdate: Array<string>) {
+		try {
+			const mediaFolder = activeFile.parent.children.find(it => it.name == "images") as TFolder
+			for (const media of mediaToUpdate) {
+				const currentMediaFile = mediaFolder.children.find(it => it.name == media)
+				if (currentMediaFile) continue
+
+				const contentBase64 = await this.connector.retrieveMediaFile(media)
+				const content: ArrayBuffer = base64ToArrayBuffer(contentBase64)
+				await this.app.vault.createBinary(mediaFolder.path + "/" + media, content)
+			}
+		} catch (e) {
+			console.log(e)
+			new Notice(`Error while pushing images`);
 		}
 	}
 
@@ -75,21 +105,21 @@ export default class AnkiMarkdownPlugin extends Plugin {
 			await this.app.vault.modify(activeFile, result.markdown)
 
 			new Notice(`Success\nAdded: ${result.ankiModificationsCounts?.addedCount}\nRemoved: ${result.ankiModificationsCounts?.removedCount}\nUpdated: ${result.ankiModificationsCounts?.updatedCount}\nUnchanged: ${result.ankiModificationsCounts?.unchangedCount}`);
-			this.storeMediaFiles(activeFile, result.mediaToUpdate)
+			await this.sendMediaFilesToAnki(activeFile, result.mediaToUpdate)
 		} catch (e) {
 			console.log(e)
 			new Notice(`Error while pushing cards ${e?.message}`);
 		}
 	}
 
-	private async storeMediaFiles(activeFile: TFile, mediaToUpdate: Array<string>) {
+	private async sendMediaFilesToAnki(activeFile: TFile, mediaToUpdate: Array<string>) {
 		try {
 			const mediaFolder = activeFile.parent.children.find(it => it.name == "images") as TFolder
 			for (const media of mediaToUpdate) {
 				const mediaFile = mediaFolder.children.find(it => it.name == media) as TFile
 				const content: ArrayBuffer = await this.app.vault.readBinary(mediaFile)
 				const contentBase64: string = arrayBufferToBase64(content);
-				this.connector.storeMediaFile(mediaFile.name, contentBase64)
+				await this.connector.storeMediaFile(mediaFile.name, contentBase64)
 			}
 		} catch (e) {
 			console.log(e)
@@ -129,8 +159,8 @@ export default class AnkiMarkdownPlugin extends Plugin {
 }
 
 class DecksModal extends Modal {
-	constructor(app: App, public names: Array<string>, public connector: AnkiConnector) {
-		super(app);
+	constructor(public names: Array<string>, public plugin: AnkiMarkdownPlugin) {
+		super(plugin.app);
 	}
 
 	onOpen() {
@@ -141,18 +171,7 @@ class DecksModal extends Modal {
 			modalContainer.createEl("p")
 				.createEl("a", {text: deckName, cls: 'anki-decks-item'})
 				.addEventListener('click', async (e) => {
-					try {
-						const data = await this.connector.createFile(deckName)
-						const fileName = deckNameToFileName(deckName)
-						const activeFilePath = this.app.workspace.getActiveFile()?.parent?.path
-						const path = activeFilePath ? activeFilePath + "/" : ""
-						const file = await this.app.vault.create(path + "/" + fileName, data.markdown)
-						this.app.workspace.getLeaf().openFile(file);
-
-						// TODO - pull files from Anki
-					} catch (e) {
-						new Notice(`Error ${e.message}`);
-					}
+					this.plugin.createNoteFromAnkiDeck(deckName)
 					this.close();
 				});
 		});
@@ -163,8 +182,11 @@ class DecksModal extends Modal {
 	}
 }
 
-function deckNameToFileName(deckName: string): string {
-	return deckName.replace(/::/g, "__") + ".md"
+function absoluteDeckNameToSimpleDeckName(deckName: string): string {
+	const delimiter = "::"
+	const start = deckName.lastIndexOf(delimiter)
+	if (start == -1) return deckName
+	return deckName.substring(start + delimiter.length)
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
@@ -175,4 +197,14 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 		binary += String.fromCharCode(bytes[i]);
 	}
 	return window.btoa(binary);
+}
+
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
+	var binary_string =  window.atob(base64);
+	var len = binary_string.length;
+	var bytes = new Uint8Array( len );
+	for (var i = 0; i < len; i++)        {
+		bytes[i] = binary_string.charCodeAt(i);
+	}
+	return bytes;
 }
