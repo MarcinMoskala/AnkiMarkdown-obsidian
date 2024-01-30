@@ -81,7 +81,7 @@ export default class AnkiMarkdownPlugin extends Plugin {
 
 	private async fetchMediaFilesFromAnki(activeFile: TFile, mediaToUpdate: Array<string>) {
 		try {
-			const mediaFolder = activeFile.parent.children.find(it => it.name == "images") as TFolder
+			const mediaFolder = activeFile.parent?.children?.find(it => it.name == "images") as TFolder
 			for (const media of mediaToUpdate) {
 				const currentMediaFile = mediaFolder.children.find(it => it.name == media)
 				if (currentMediaFile) continue
@@ -114,7 +114,7 @@ export default class AnkiMarkdownPlugin extends Plugin {
 
 	private async sendMediaFilesToAnki(activeFile: TFile, mediaToUpdate: Array<string>) {
 		try {
-			const mediaFolder = activeFile.parent.children.find(it => it.name == "images") as TFolder
+			const mediaFolder = activeFile.parent?.children?.find(it => it.name == "images") as TFolder
 			for (const media of mediaToUpdate) {
 				const mediaFile = mediaFolder.children.find(it => it.name == media) as TFile
 				const content: ArrayBuffer = await this.app.vault.readBinary(mediaFile)
